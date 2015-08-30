@@ -70,7 +70,7 @@ Execute a python statement in the application context. The only available symbol
 in the cmd globals() is the current running application instance, accessible
 from `app` keyword.
 
-    execute("app.screen_manager.switch_to('credits')")
+    execute("app.screen_manager.current = 'credits'")
 
 ### screenshot(name="screenshot", suffix=None, outdir=None)
 

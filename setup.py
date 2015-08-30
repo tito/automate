@@ -26,7 +26,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 setup(
-    name="automate",
+    name="kivy-automate",
     version=find_version("automate", "__init__.py"),
     url="http://github.com/tito/automate",
     license="MIT",
