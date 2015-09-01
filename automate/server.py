@@ -36,13 +36,34 @@ def screenshot(*args):
     def _real_screenshot():
         import tempfile
         from kivy.core.window import Window
+        from kivy.utils import platform
         try:
             fd = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             # XXX hack, Window.screenshot doesn't respect our filename
             screenshot_fn = fd.name.rsplit(".")[-2] + "0001.png"
             fd.close()
-            width, height = Window.size
-            Window.screenshot(name=fd.name)
+
+            if platform == "ios":
+                from kivy.graphics.opengl import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE
+                from kivy.core.image import ImageLoader
+                # hacky, as Window don't have correct system size (why, i don't
+                # know.)
+                width, height = Window._win._get_gl_size()
+                Window.dispatch("on_draw")
+                data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+                # save using standard imageloader, but in rgba
+                loader = [x for x in ImageLoader.loaders if x.can_save()][0]
+                loader.save(screenshot_fn, width, height, "rgba", data, True)
+                """
+                # strides issue
+                data = list(data)
+                del data[3::4]
+                data = "".join(data)
+                Window._win.save_bytes_in_png(screenshot_fn, data, width,
+                        height)
+                """
+            else:
+                Window.screenshot(name=fd.name)
             with open(screenshot_fn, "rb") as fd:
                 data = fd.read()
             _result[:] = [width, height, base64.encodestring(data)]
