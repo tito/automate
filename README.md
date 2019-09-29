@@ -12,6 +12,7 @@ specific places.
 There is 2 part of the software: a server and a client. The server must be
 installed into your application, and then you can use the client to communicate
 with it.
+
 ## Install the server into your application
 
 Just run this command to create an `automateserver.py` file that you can import:

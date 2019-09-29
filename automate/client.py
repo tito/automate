@@ -13,6 +13,7 @@ import sys
 from time import time, sleep
 from os.path import join
 from os import getcwd
+import traceback
 
 _connect_info = ("localhost", 7777)
 
@@ -23,7 +24,7 @@ def _dprint(msg):
 
 
 def _recvall(sock, size):
-    msg = ""
+    msg = bytearray(b"")
     while len(msg) < size:
         packet = sock.recv(size - len(msg))
         if not packet:
@@ -41,13 +42,13 @@ def interact(*args):
         msg = json.dumps(args)
         size = len(msg)
         sock.sendall(struct.pack("I", size))
-        sock.sendall(msg)
+        sock.sendall(msg.encode("utf8"))
         msgsize = _recvall(sock, struct.calcsize("I"))
         if not msgsize:
             return None
         size = struct.unpack("I", msgsize)[0]
         msgdata = _recvall(sock, size)
-        return json.loads(msgdata)
+        return json.loads(msgdata.decode("utf8"))
     finally:
         sock.close()
 
@@ -66,6 +67,7 @@ def connect(host="localhost", port=7777, timeout=10):
                 _dprint("timeout\n", fatal=True)
                 raise Exception("Connection timeout")
         except:
+            traceback.print_exc()
             sleep(.1)
 
 
@@ -82,7 +84,7 @@ def screenshot(name="screenshot", suffix=None, outdir=None):
     filename = join(outdir or getcwd(), filename)
     _dprint(u"Screenshot ({})... ".format(filename))
     width, height, data = interact("screenshot")
-    data = base64.decodestring(data)
+    data = base64.decodestring(data.encode("utf8"))
     with open(filename, "wb") as fd:
         fd.write(data)
     _dprint("ok\n")
@@ -110,10 +112,3 @@ class spawn(object):
         self.process.terminate()
         self.process.wait()
 
-
-if __name__ == "__main__":
-    connect()
-    wait("app.screen_manager.current == 'welcome'")
-    wait("app.screen_manager.current_screen.transition_progress == 1")
-    screenshot()
-    quit()

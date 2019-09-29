@@ -36,37 +36,33 @@ def screenshot(*args):
     def _real_screenshot():
         import tempfile
         from kivy.core.window import Window
-        from kivy.utils import platform
+
         try:
             fd = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             # XXX hack, Window.screenshot doesn't respect our filename
             screenshot_fn = fd.name.rsplit(".")[-2] + "0001.png"
             fd.close()
 
-            if platform == "ios":
-                from kivy.graphics.opengl import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE
-                from kivy.core.image import ImageLoader
-                # hacky, as Window don't have correct system size (why, i don't
-                # know.)
-                width, height = Window._win._get_gl_size()
-                Window.dispatch("on_draw")
-                data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
-                # save using standard imageloader, but in rgba
-                loader = [x for x in ImageLoader.loaders if x.can_save()][0]
-                loader.save(screenshot_fn, width, height, "rgba", data, True)
-                """
-                # strides issue
-                data = list(data)
-                del data[3::4]
-                data = "".join(data)
-                Window._win.save_bytes_in_png(screenshot_fn, data, width,
-                        height)
-                """
-            else:
-                Window.screenshot(name=fd.name)
+            """
+            width, height = Window.size
+            print(width, height)
+            Window.screenshot(name=fd.name)
+            """
+
+            from kivy.graphics.opengl import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE
+            from kivy.core.image import ImageLoader
+            # hacky, as Window don't have correct system size (why, i don't
+            # know.)
+            width, height = Window._win._get_gl_size()
+            Window.dispatch("on_draw")
+            data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+            # save using standard imageloader, but in rgba
+            loader = [x for x in ImageLoader.loaders if x.can_save(fmt="png", is_bytesio=False)][0]
+            loader.save(screenshot_fn, width, height, "rgba", data, True, "png")
+
             with open(screenshot_fn, "rb") as fd:
                 data = fd.read()
-            _result[:] = [width, height, base64.encodestring(data)]
+            _result[:] = [width, height, base64.encodestring(data).decode("utf8")]
         except:
             import traceback
             traceback.print_exc()
@@ -97,7 +93,7 @@ def execute(cmd):
         app = App.get_running_app()
         idmap = {"app": app}
         try:
-            exec cmd in idmap, idmap
+            exec(cmd, idmap)
         except Exception as e:
             _result[:] = [u"{}".format(e)]
         _event.set()
@@ -164,9 +160,8 @@ def quit():
 
 
 def recvall(sock, size):
-    msg = ""
+    msg = bytearray(b'')
     while len(msg) < size:
-        print size, len(msg)
         packet = sock.recv(size - len(msg))
         if not packet:
             return None
@@ -188,14 +183,14 @@ def run_automate_socket():
         try:
             size = struct.unpack("I", recvall(sock, struct.calcsize("I")))[0]
             data = recvall(sock, size)
-            args = json.loads(data)
+            args = json.loads(data.decode("utf8"))
 
             cmd, args = args[0], args[1:]
             result = COMMANDS[cmd](*args)
             data = json.dumps(result)
 
             sock.sendall(struct.pack("I", len(data)))
-            sock.sendall(data)
+            sock.sendall(data.encode("utf8"))
 
         except:
             import traceback
