@@ -84,7 +84,7 @@ def screenshot(name="screenshot", suffix=None, outdir=None):
     filename = join(outdir or getcwd(), filename)
     _dprint(u"Screenshot ({})... ".format(filename))
     width, height, data = interact("screenshot")
-    data = base64.decodestring(data.encode("utf8"))
+    data = base64.decodebytes(data.encode("utf8"))
     with open(filename, "wb") as fd:
         fd.write(data)
     _dprint("ok\n")

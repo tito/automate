@@ -62,7 +62,7 @@ def screenshot(*args):
 
             with open(screenshot_fn, "rb") as fd:
                 data = fd.read()
-            _result[:] = [width, height, base64.encodestring(data).decode("utf8")]
+            _result[:] = [width, height, base64.encodebytes(data).decode("utf8")]
         except:
             import traceback
             traceback.print_exc()
